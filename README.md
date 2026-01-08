@@ -16,15 +16,7 @@ Git worktrees allow you to have multiple working directories for a single reposi
 ## Installation
 
 ```bash
-gh extension install vanderlei/gh-wt
-```
-
-Or install from source:
-
-```bash
-git clone https://github.com/vanderlei/gh-wt
-cd gh-wt
-gh extension install .
+gh extension install vansdevcode/gh-wt
 ```
 
 ## Quick Start
