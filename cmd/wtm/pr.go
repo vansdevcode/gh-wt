@@ -10,11 +10,11 @@ import (
 var prCmd = &cobra.Command{
 	Use:   "pr <number> [directory]",
 	Short: "Checkout a pull request (alias for 'add pr/<number>')",
-	Long: `Checkout a pull request by number. This is a convenience alias for 'gh wt add pr/<number>'.
+	Long: `Checkout a pull request by number. This is a convenience alias for 'gh wtm add pr/<number>'.
 
 Examples:
-  gh wt pr 123           # Checkout PR #123 to pr-123/
-  gh wt pr 123 my-dir    # Checkout PR #123 to my-dir/`,
+  gh wtm pr 123           # Checkout PR #123 to pr-123/
+  gh wtm pr 123 my-dir    # Checkout PR #123 to my-dir/`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runPr,
 }
