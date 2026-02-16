@@ -78,12 +78,18 @@ func runRm(cmd *cobra.Command, args []string) error {
 	// Safety checks
 	if !rmForce {
 		hasChanges, err := git.HasUncommittedChanges(worktreePath)
-		if err == nil && hasChanges {
+		if err != nil {
+			return fmt.Errorf("failed to check for uncommitted changes: %w", err)
+		}
+		if hasChanges {
 			return fmt.Errorf("worktree has uncommitted changes, use --force to remove anyway")
 		}
 
 		hasUntracked, err := git.HasUntrackedFiles(worktreePath)
-		if err == nil && hasUntracked {
+		if err != nil {
+			return fmt.Errorf("failed to check for untracked files: %w", err)
+		}
+		if hasUntracked {
 			ui.Warning("⚠ Worktree has untracked files")
 		}
 	}
