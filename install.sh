@@ -69,6 +69,22 @@ get_latest_version() {
     success "Latest version: $VERSION"
 }
 
+# Calculate SHA256 checksum (cross-platform)
+calculate_sha256() {
+    local file="$1"
+    
+    if command -v sha256sum >/dev/null 2>&1; then
+        # Linux
+        sha256sum "$file" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        # macOS
+        shasum -a 256 "$file" | awk '{print $1}'
+    else
+        error "Neither sha256sum nor shasum found. Cannot verify checksum."
+        return 1
+    fi
+}
+
 # Verify checksum
 verify_checksum() {
     local file="$1"
@@ -77,7 +93,12 @@ verify_checksum() {
     info "Verifying checksum..."
     
     # Calculate actual checksum
-    local actual_checksum=$(sha256sum "$file" | awk '{print $1}')
+    local actual_checksum=$(calculate_sha256 "$file")
+    
+    if [ -z "$actual_checksum" ]; then
+        error "Failed to calculate checksum"
+        return 1
+    fi
     
     if [ "$actual_checksum" != "$expected_checksum" ]; then
         error "Checksum verification failed!"
@@ -110,7 +131,7 @@ install_standalone() {
     
     # Extract expected checksum for this binary
     local binary_filename="wtm_${OS}_${ARCH}"
-    local expected_checksum=$(grep "$binary_filename" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
+    local expected_checksum=$(grep "^[a-f0-9]*  ${binary_filename}$" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
     
     if [ -z "$expected_checksum" ]; then
         error "Could not find checksum for $binary_filename. Building from source instead..."
