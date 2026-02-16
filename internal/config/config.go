@@ -20,12 +20,17 @@ func FindRoot() (string, error) {
 		return "", err
 	}
 
-	for currentDir != "/" && currentDir != "." {
+	for {
 		bareDir := filepath.Join(currentDir, ".bare")
 		if _, err := os.Stat(bareDir); err == nil {
 			return currentDir, nil
 		}
-		currentDir = filepath.Dir(currentDir)
+
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			break
+		}
+		currentDir = parent
 	}
 
 	return "", os.ErrNotExist
