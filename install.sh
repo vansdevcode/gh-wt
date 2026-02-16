@@ -69,6 +69,49 @@ get_latest_version() {
     success "Latest version: $VERSION"
 }
 
+# Calculate SHA256 checksum (cross-platform)
+calculate_sha256() {
+    local file="$1"
+    
+    if command -v sha256sum >/dev/null 2>&1; then
+        # Linux
+        sha256sum "$file" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        # macOS
+        shasum -a 256 "$file" | awk '{print $1}'
+    else
+        error "Neither sha256sum nor shasum found. Cannot verify checksum."
+        return 1
+    fi
+}
+
+# Verify checksum
+verify_checksum() {
+    local file="$1"
+    local expected_checksum="$2"
+    
+    info "Verifying checksum..."
+    
+    # Calculate actual checksum
+    local actual_checksum=$(calculate_sha256 "$file")
+    
+    if [ -z "$actual_checksum" ]; then
+        error "Failed to calculate checksum"
+        return 1
+    fi
+    
+    if [ "$actual_checksum" != "$expected_checksum" ]; then
+        error "Checksum verification failed!"
+        error "  Expected: $expected_checksum"
+        error "  Got:      $actual_checksum"
+        error "This could indicate a compromised download or network tampering."
+        return 1
+    fi
+    
+    success "Checksum verified successfully"
+    return 0
+}
+
 # Download and install binary
 install_standalone() {
     info "Installing standalone wtm command to $INSTALL_DIR..."
@@ -76,12 +119,40 @@ install_standalone() {
     # Create install directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
     
+    # Download checksums file
+    local checksums_url="https://github.com/$REPO/releases/download/$VERSION/checksums.txt"
+    info "Downloading checksums..."
+    
+    if ! curl -fsSL "$checksums_url" -o "$TEMP_DIR/checksums.txt"; then
+        error "Failed to download checksums file. Building from source instead..."
+        build_from_source
+        return
+    fi
+    
+    # Extract expected checksum for this binary
+    local binary_filename="wtm_${OS}_${ARCH}"
+    local expected_checksum=$(grep "^[a-f0-9]*  ${binary_filename}$" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
+    
+    if [ -z "$expected_checksum" ]; then
+        error "Could not find checksum for $binary_filename. Building from source instead..."
+        build_from_source
+        return
+    fi
+    
     # Download binary
-    local download_url="https://github.com/$REPO/releases/download/$VERSION/wtm_${OS}_${ARCH}"
+    local download_url="https://github.com/$REPO/releases/download/$VERSION/$binary_filename"
     info "Downloading from $download_url..."
     
     if ! curl -fsSL "$download_url" -o "$TEMP_DIR/$BINARY_NAME"; then
         error "Failed to download binary. Building from source instead..."
+        build_from_source
+        return
+    fi
+    
+    # Verify checksum before installing
+    if ! verify_checksum "$TEMP_DIR/$BINARY_NAME" "$expected_checksum"; then
+        error "Installation aborted due to checksum mismatch."
+        error "Building from source instead..."
         build_from_source
         return
     fi
