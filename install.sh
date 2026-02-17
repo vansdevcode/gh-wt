@@ -131,7 +131,7 @@ install_standalone() {
     
     # Extract expected checksum for this binary
     local binary_filename="wtm_${OS}_${ARCH}"
-    local expected_checksum=$(grep "^[a-f0-9]+  ${binary_filename}$" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
+    local expected_checksum=$(grep -E "^[a-f0-9]+  ${binary_filename}$" "$TEMP_DIR/checksums.txt" | awk '{print $1}')
     
     if [ -z "$expected_checksum" ]; then
         error "Could not find checksum for $binary_filename. Building from source instead..."
