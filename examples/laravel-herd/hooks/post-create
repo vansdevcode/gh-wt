@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+# Get database name from environment variable provided by `wtm`
+DB_NAME="myapp_$(echo "$WT_BRANCH" | sed 's/[^a-zA-Z0-9]/_/g' | tr '[:upper:]' '[:lower:]')"
+
+echo "🗄️  Cloning database: myapp_db_base → $DB_NAME"
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;" 2>/dev/null || true
+
+mysqldump -uroot myapp_db_base 2>/dev/null | mysql -uroot "$DB_NAME" 2>/dev/null || {
+  echo "⚠️  Warning: Could not clone database. Creating empty database instead."
+  mysql -uroot -e "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;" 2>/dev/null
+}
+
+echo "📦 Installing Composer dependencies..."
+composer install --quiet --no-interaction
+
+echo "📦 Installing NPM dependencies..."
+npm install --silent
+
+echo "🔗 Linking to Laravel Herd..."
+herd link
+
+echo "✅ Worktree setup complete!"
+echo "🌐 App URL: http://$(echo "$WT_BRANCH" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | tr '[:upper:]' '[:lower:]').myapp.test"
+echo "🗄️  Database: $DB_NAME"
