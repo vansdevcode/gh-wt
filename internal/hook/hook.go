@@ -93,6 +93,7 @@ func RunHook(hookPath, branchName, branchDirectory, rootDirectory string) error 
 
 	cmd := exec.Command(interpreterParts[0], append(interpreterParts[1:], tmpFile.Name())...)
 	cmd.Dir = branchDirectory
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
